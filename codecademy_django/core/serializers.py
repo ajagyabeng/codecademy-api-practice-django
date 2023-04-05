@@ -14,35 +14,10 @@ class ReadUserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ReadVenueSerializer(serializers.ModelSerializer):
-    """
-    Serializes the Venue model for a POST request.
-    """
-    author = ReadUserSerializer()
-
-    class Meta:
-        model = Venue
-        fields = ("id", "name", "address", "created", "author")
-        read_only_fields = fields
-
-
-class WriteVenueSerializer(serializers.ModelSerializer):
-    """
-    Serializes the Venue model for a POST request.
-    """
-    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = Venue
-        fields = ("name", "created", "address", "author")
-
-
 class ReadPhotoSerializer(serializers.ModelSerializer):
     """
     Serializes the Photo model for a GET request.
     """
-    venue = ReadVenueSerializer()
-
     class Meta:
         model = Photo
         fields = ("id", "image_url", "author", "created", "venue")
@@ -56,7 +31,7 @@ class WritePhotoSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     venue = serializers.SlugRelatedField(
-        slug_field="name", queryset=Venue.objects.all())
+        slug_field="name", queryset=Venue.objects.select_related("venue", "author"))
 
     class Meta:
         model = Photo
@@ -69,3 +44,35 @@ class WritePhotoSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         author = self.context["request"].user
         self.fields["venue"].queryset = author.venues.all()
+
+
+class ReadVenueSerializer(serializers.ModelSerializer):
+    """
+    Serializes the Venue model for a POST request.
+    """
+    author = ReadUserSerializer()
+    photo = ReadPhotoSerializer()
+
+    class Meta:
+        model = Venue
+        fields = ("id", "name", "address", "created", "author", "photo")
+        read_only_fields = fields
+
+
+class VenueWithPhotoSerializer(serializers.Serializer):
+    venue = ReadVenueSerializer()
+    photo = ReadPhotoSerializer()
+
+
+class WriteVenueSerializer(serializers.ModelSerializer):
+    """
+    Serializes the Venue model for a POST request.
+    """
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Venue
+        fields = ("name", "created", "address", "author")
+
+    # TODO: Figure out how to add photos when adding a venue.
+    # Issue: you cant add venue without and existing photo, AND vice versa.
