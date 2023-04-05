@@ -1,13 +1,15 @@
-from rest_framework.generics import CreateAPIView
-from django.contrib.auth.models import User
+from django.shortcuts import render, redirect
 
 from .form import MyUserCreationForm
 
 
-def registerUser(request):
+def register_user(request):
+    form = MyUserCreationForm()
+    context = {"form": form}
     if request.method == "POST":
         form = MyUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
             user.username = user.username.lower()
             user.save()
+    return render(request, "accounts/register.html", context)
