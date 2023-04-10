@@ -35,8 +35,22 @@ class VenueAPIView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Checks for photos and assigns them to the right venues"""
-        return Venue.objects.select_related("author").filter(author=self.request.user)
+        """Checks for photos and assigns them to the right venues and then return the venues."""
+        venues = Venue.objects.select_related(
+            "author").filter(author=self.request.user).order_by("id")
+        photos = Photo.objects.select_related(
+            "author").filter(author=self.request.user)
+
+        for venue in venues:
+            if venue.photo.count() == 0:
+                for photo in photos:
+                    if photo.venue_name == venue.name:
+                        venue.photo.add(photo)
+            else:
+                for photo in photos:
+                    if photo.venue_name == venue.name:
+                        venue.photo.add(photo)
+        return venues
 
     def get_serializer_class(self):
         """Selects the right serialier based on the method type."""
@@ -44,20 +58,4 @@ class VenueAPIView(ModelViewSet):
             return ReadVenueSerializer
         return WriteVenueSerializer
 
-    def list(self, request):
-        """Lists all venues. Checks the """
-        venues = self.get_queryset()
-        photos = Photo.objects.select_related("author").filter(
-            author=self.request.user)
-
-        for venue in venues:
-            for photo in photos:
-                if photo.venue_name == venue.name:
-                    venue.photo.add(photo)
-
-        serializer_class = self.get_serializer_class()
-        serializer = serializer_class(venues, many=True)
-        return Response(serializer.data)
-
 # Issue 1: Optimize database operation to reduce LOAD time
-# Issue 2: Execute first part of part of list method on a general basis so retrieve could also do add phot in it is null.
