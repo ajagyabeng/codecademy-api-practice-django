@@ -12,6 +12,7 @@ api_router.register(r'photos', views.PhotoAPIView, basename='photo')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls')),
     path('api/login/', obtain_auth_token, name="obtain_auth_token"),
     path('api/register/', auth.register_user, name="register"),
     path('api/', include(api_router.urls)),
