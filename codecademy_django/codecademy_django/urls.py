@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/login/', obtain_auth_token, name="obtain_auth_token"),
     path('api/register/', auth.register_user, name="register"),
     path('api/', include(api_router.urls)),
+    path('__debug__/', include('debug_toolbar.urls')),
 ]
