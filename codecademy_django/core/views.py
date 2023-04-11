@@ -1,6 +1,8 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
+from django.db.models import Prefetch
+
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .models import Venue, Photo
@@ -36,20 +38,19 @@ class VenueAPIView(ModelViewSet):
 
     def get_queryset(self):
         """Checks for photos and assigns them to the right venues and then return the venues."""
-        venues = Venue.objects.select_related(
-            "author").filter(author=self.request.user).order_by("id")
-        photos = Photo.objects.select_related(
-            "author").filter(author=self.request.user)
+        venues = Venue.objects.prefetch_related(
+            Prefetch("photo", queryset=Photo.objects.filter(
+                author=self.request.user))
+        ).filter(author=self.request.user).order_by("id")
+
+        photo_index = {}
+
+        for photo in Photo.objects.filter(author=self.request.user):
+            photo_index.setdefault(photo.venue_name, []).append(photo)
 
         for venue in venues:
-            if venue.photo.count() == 0:
-                for photo in photos:
-                    if photo.venue_name == venue.name:
-                        venue.photo.add(photo)
-            else:
-                for photo in photos:
-                    if photo.venue_name == venue.name:
-                        venue.photo.add(photo)
+            venue.photo.set(photo_index.get(venue.name, []))
+
         return venues
 
     def get_serializer_class(self):
